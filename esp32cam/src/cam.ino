@@ -6,43 +6,24 @@
 
 WebServer server(80);
 
-static auto loRes = esp32cam::Resolution::find(320, 240);
 static auto hiRes = esp32cam::Resolution::find(800, 600);
-static auto hiRes2 = esp32cam::Resolution::find(1024, 768);
+
 void
-handleBmp()
+handleJpgHi()
 {
-  if (!esp32cam::Camera.changeResolution(loRes)) {
-    Serial.println("SET-LO-RES FAIL");
+  pinMode(4,OUTPUT);
+  digitalWrite(4,HIGH);
+
+  delay(150);
+
+  if (!esp32cam::Camera.changeResolution(hiRes)) {
+    Serial.println("SET-HI-RES FAIL");
   }
 
   auto frame = esp32cam::capture();
-  if (frame == nullptr) {
-    Serial.println("CAPTURE FAIL");
-    server.send(503, "", "");
-    return;
-  }
-  Serial.printf("CAPTURE OK %dx%d %db\n", frame->getWidth(), frame->getHeight(),
-                static_cast<int>(frame->size()));
+  pinMode(4,OUTPUT);
+  digitalWrite(4,LOW);
 
-  if (!frame->toBmp()) {
-    Serial.println("CONVERT FAIL");
-    server.send(503, "", "");
-    return;
-  }
-  Serial.printf("CONVERT OK %dx%d %db\n", frame->getWidth(), frame->getHeight(),
-                static_cast<int>(frame->size()));
-
-  server.setContentLength(frame->size());
-  server.send(200, "image/bmp");
-  WiFiClient client = server.client();
-  frame->writeTo(client);
-}
-
-void
-serveJpg()
-{
-  auto frame = esp32cam::capture();
   if (frame == nullptr) {
     Serial.println("CAPTURE FAIL");
     server.send(503, "", "");
@@ -55,59 +36,9 @@ serveJpg()
   server.send(200, "image/jpeg");
   WiFiClient client = server.client();
   frame->writeTo(client);
+
 }
 
-void
-handleJpgLo()
-{
-  if (!esp32cam::Camera.changeResolution(loRes)) {
-    Serial.println("SET-LO-RES FAIL");
-  }
-  serveJpg();
-}
-
-void
-handleJpgHi()
-{
-  pinMode(4,OUTPUT);
-  digitalWrite(4,HIGH);
-
-  delay(100);
-
-  if (!esp32cam::Camera.changeResolution(hiRes2)) {
-    Serial.println("SET-HI-RES FAIL");
-  }
-  serveJpg();
-
-  pinMode(4,OUTPUT);
-  digitalWrite(4,LOW);
-}
-
-void
-handleJpg()
-{
-  server.sendHeader("Location", "/cam-hi.jpg");
-  server.send(302, "", "");
-}
-
-void
-handleMjpeg()
-{
-  if (!esp32cam::Camera.changeResolution(hiRes)) {
-    Serial.println("SET-HI-RES FAIL");
-  }
-
-  Serial.println("STREAM BEGIN");
-  WiFiClient client = server.client();
-  auto startTime = millis();
-  int res = esp32cam::Camera.streamMjpeg(client);
-  if (res <= 0) {
-    Serial.printf("STREAM ERROR %d\n", res);
-    return;
-  }
-  auto duration = millis() - startTime;
-  Serial.printf("STREAM END %dfrm %0.2ffps\n", res, 1000.0 * res / duration);
-}
 
 void
 setup()
@@ -120,9 +51,9 @@ setup()
     using namespace esp32cam;
     Config cfg;
     cfg.setPins(pins::AiThinker);
-    cfg.setResolution(hiRes2);
-    cfg.setBufferCount(4);
-    cfg.setJpeg(60);
+    cfg.setResolution(hiRes);
+    cfg.setBufferCount(2);
+    cfg.setJpeg(80);
 
     bool ok = Camera.begin(cfg);
     Serial.println(ok ? "CAMERA OK" : "CAMERA FAIL");
@@ -165,16 +96,9 @@ setup()
 
   Serial.print("http://");
   Serial.println(WiFi.localIP());
-  Serial.println("  /cam.bmp");
-  Serial.println("  /cam-lo.jpg");
   Serial.println("  /cam-hi.jpg");
-  Serial.println("  /cam.mjpeg");
 
-  server.on("/cam.bmp", handleBmp);
-  server.on("/cam-lo.jpg", handleJpgLo);
   server.on("/cam-hi.jpg", handleJpgHi);
-  server.on("/cam.jpg", handleJpg);
-  server.on("/cam.mjpeg", handleMjpeg);
 
   server.begin();
 }
