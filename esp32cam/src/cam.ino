@@ -3,10 +3,11 @@
 #include <esp32cam.h>
 #include <esp_camera.h>
 #include <wifi_pass.h>
+#include <ESPmDNS.h>
 
 WebServer server(80);
 
-static auto hiRes = esp32cam::Resolution::find(800, 600);
+static auto hiRes = esp32cam::Resolution::find(640, 480);
 
 void
 handleJpgHi()
@@ -40,11 +41,60 @@ handleJpgHi()
 }
 
 
+bool anyoneStreaming;
+
+void
+handleMjpeg()
+{
+  anyoneStreaming = true;
+
+  if (!esp32cam::Camera.changeResolution(hiRes)) {
+    Serial.println("SET-HI-RES FAIL");
+  }
+
+  Serial.println("STREAM BEGIN");
+  WiFiClient client = server.client();
+  auto startTime = millis();
+  int res = esp32cam::Camera.streamMjpeg(client);
+
+  anyoneStreaming = false;
+
+  if (res <= 0) {
+    Serial.printf("STREAM ERROR %d\n", res);
+    return;
+  }
+  auto duration = millis() - startTime;
+  Serial.printf("STREAM END %dfrm %0.2ffps\n", res, 1000.0 * res / duration);
+}
+
+
+char *getCamID() {
+
+   static char cam_id[17];
+   uint32_t chipId = 0;
+   for(int i=0; i<17; i=i+8) {
+	  chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+   }
+   sprintf(cam_id,"CAM_%08x", chipId);
+   return cam_id;
+}
+   	
 void
 setup()
 {
+
   Serial.begin(115200);
   Serial.println();
+
+  char *cam_id = getCamID();
+   
+  if(!MDNS.begin(cam_id)) {
+     Serial.println("Error starting mDNS");
+     return;
+  }
+
+  Serial.print("Started mDNS server as ");
+  Serial.println(cam_id);
 
 
   {
@@ -53,7 +103,7 @@ setup()
     cfg.setPins(pins::AiThinker);
     cfg.setResolution(hiRes);
     cfg.setBufferCount(2);
-    cfg.setJpeg(80);
+    cfg.setJpeg(90);
 
     bool ok = Camera.begin(cfg);
     Serial.println(ok ? "CAMERA OK" : "CAMERA FAIL");
@@ -99,12 +149,28 @@ setup()
   Serial.println("  /cam-hi.jpg");
 
   server.on("/cam-hi.jpg", handleJpgHi);
+  server.on("/stream", handleMjpeg);
 
   server.begin();
 }
+
+bool microShiftResolved = false;
+IPAddress microShiftAddress;
 
 void
 loop()
 {
   server.handleClient();
+
+  if (!microShiftAddress) {
+  	microShiftAddress = MDNS.queryHost("microshift-cam-reg");
+        if (microShiftAddress) {
+ 	    Serial.print("microshift address resolved to: ");
+            Serial.println(microShiftAddress.toString());
+        } else {
+            Serial.println("Could not resolve microshift address");
+            delay(1000);
+        }
+  }
+		
 }
