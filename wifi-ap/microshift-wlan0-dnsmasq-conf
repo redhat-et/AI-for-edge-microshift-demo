@@ -1,0 +1,14 @@
+interface=wlan0
+bind-interfaces
+dhcp-option=3,192.168.66.1
+dhcp-option=6,192.168.66.1
+expand-hosts
+domain=cams
+local=/cams/
+dhcp-authoritative
+dhcp-range=192.168.66.50,192.168.66.150,12h
+dhcp-leasefile=/var/lib/misc/dnsmasq.leases
+log-queries
+log-dhcp
+
+
