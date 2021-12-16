@@ -1,3 +1,3 @@
-const char* WIFI_SSID = "laotrainternet2";
-const char* WIFI_PASS = "yavaledehackers33";
+const char* WIFI_SSID = "camwifi";
+const char* WIFI_PASS = "thisisacamwifi";
 
