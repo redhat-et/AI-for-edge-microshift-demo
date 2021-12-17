@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camserver 
+  labels:
+    app: camserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: camserver
+  template:
+    metadata:
+      labels:
+        app: camserver
+    spec:
+      containers:
+      - name: camserver 
+        image: quay.io/mangelajo/cam-server:latest
+        imagePullPolicy: Always
+        ports:
+         - containerPort: 5000
+
