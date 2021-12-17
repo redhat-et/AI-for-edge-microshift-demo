@@ -4,8 +4,10 @@
 #include <esp_camera.h>
 #include <wifi_pass.h>
 #include <ESPmDNS.h>
+#include <HTTPClient.h>
 
 WebServer server(80);
+IPAddress microShiftAddress;
 
 static auto hiRes = esp32cam::Resolution::find(640, 480);
 
@@ -58,6 +60,8 @@ handleMjpeg()
   int res = esp32cam::Camera.streamMjpeg(client);
 
   anyoneStreaming = false;
+  //Trigger reconnection to microshift camserver
+  microShiftAddress = IPAddress((uint32_t)0);
 
   if (res <= 0) {
     Serial.printf("STREAM ERROR %d\n", res);
@@ -67,6 +71,7 @@ handleMjpeg()
   Serial.printf("STREAM END %dfrm %0.2ffps\n", res, 1000.0 * res / duration);
 }
 
+char token[32];
 
 char *getCamID() {
 
@@ -85,6 +90,8 @@ setup()
 
   Serial.begin(115200);
   Serial.println();
+
+  sprintf(token, "%08x", esp_random());
 
   char *cam_id = getCamID();
    
@@ -155,7 +162,9 @@ setup()
 }
 
 bool microShiftResolved = false;
-IPAddress microShiftAddress;
+
+#define HOSTNAME "microshift-cam-reg"
+#define HOSTNAME_FULL HOSTNAME ".local"
 
 void
 loop()
@@ -163,14 +172,46 @@ loop()
   server.handleClient();
 
   if (!microShiftAddress) {
-  	microShiftAddress = MDNS.queryHost("microshift-cam-reg");
+  	microShiftAddress = MDNS.queryHost(HOSTNAME);
         if (microShiftAddress) {
  	    Serial.print("microshift address resolved to: ");
             Serial.println(microShiftAddress.toString());
+  	    if (!registerInCamServer()) {
+		microShiftAddress = IPAddress((uint32_t)0);
+            }        
+             
         } else {
             Serial.println("Could not resolve microshift address");
             delay(1000);
         }
-  }
-		
+  }	
 }
+
+bool registerInCamServer() {
+
+  // If you wonder why using a bare TCP client instead of the HTTPClient:
+  // HTTPClient does not let you provide a hostname when contacting an
+  // IP Address, and without that openshift router (or any other type
+  // of http load balancer, won't know where to send the request)
+
+  String requestPath = "/register?ip=";
+  requestPath += WiFi.localIP().toString();
+  requestPath += "&token=";
+  requestPath += token;
+
+  WiFiClient client;
+
+  if (!client.connect(microShiftAddress, 80)) {
+	Serial.println("Connection failed");
+  }
+
+  client.println("GET " + requestPath + " HTTP/1.1");
+  client.println("Host: " HOSTNAME_FULL);
+  client.println("Connection: close");
+  client.println();
+
+  Serial.println("disconnected");
+  client.stop();
+  return true;
+}
+
