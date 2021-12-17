@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cameras-ap
+  labels:
+    infra: ap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      infra: ap
+  template:
+    metadata:
+      labels:
+        infra: ap
+    spec:
+      hostNetwork: true
+      containers:
+      - name: camwifi-ap
+        image: quay.io/mangelajo/microshift-ap-cams
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true # otherwise hostapd can't change channels for some reason
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+
