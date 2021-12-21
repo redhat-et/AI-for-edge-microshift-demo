@@ -1,8 +1,13 @@
-FROM nvcr.io/nvidia/l4t-ml:r32.6.1-py3
-RUN pip3 install flask face_recognition
+FROM docker.io/mangelajo/jetson-tx2-dlib:latest 
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
+    apt-get install -y python3-markupsafe nvidia-opencv python3-opencv\
+                       python3-requests
+RUN pip3 install flask
 WORKDIR /app
+
 COPY server.py /app
-COPY haarcascade_frontalface_default.xml /app
+RUN mkdir /app/faces
+COPY faces /app/faces
 ENV FLASK_APP=server
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8

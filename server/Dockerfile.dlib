@@ -1,0 +1,39 @@
+# This Dockerfile should not be run directly. Instead, run ./build-aio-dev.sh
+FROM nvcr.io/nvidia/l4t-base:r32.6.1
+
+ARG ARCH=arm64
+
+#xavier NX
+#ARG SOC=t194
+
+#tx2
+ARG SOC=t186
+ARG DLIB_VERSION=19.22
+USER root
+
+# add l4t repo
+ADD https://repo.download.nvidia.com/jetson/jetson-ota-public.asc /etc/apt/trusted.gpg.d/jetson-ota-public.asc
+RUN chmod 644 /etc/apt/trusted.gpg.d/jetson-ota-public.asc && \
+    apt-get update && apt-get install -y ca-certificates && \
+        echo "deb https://repo.download.nvidia.com/jetson/common r32.6 main" > /etc/apt/sources.list.d/nvidia-container-runtime.list && \
+        echo "deb https://repo.download.nvidia.com/jetson/${SOC} r32.6 main" >> /etc/apt/sources.list.d/nvidia-container-runtime.list && \
+        apt-get update
+
+RUN apt-get install -y libcublas-dev libcusolver-dev-10-2 cuda-nvcc-10-2 cuda-cudart-dev-10-2 cuda-compiler-10-2 cmake git  libcudnn8-dev \
+                       libopenblas-dev liblapack-dev libcurand-dev-10-2
+
+WORKDIR /root
+RUN wget http://dlib.net/files/dlib-${DLIB_VERSION}.tar.bz2 && tar xvf dlib* && rm *.tar.bz2
+RUN cd dlib-${DLIB_VERSION} && \
+    sed -i 's,forward_algo = forward_best_algo;,//forward_algo = forward_best_algo;,g' dlib/cuda/cudnn_dlibapi.cpp && \
+    mkdir build && \
+    cd build && \
+    cmake .. -DDLIB_USE_CUDA=1 && \
+    cmake --build . -- -j 5 
+
+RUN  apt-get install -y python3-all-dev python3-setuptools && \
+     cd dlib-${DLIB_VERSION} && \
+     python3 setup.py install
+
+RUN apt-get install -y python3-pil python3-pip python3-numpy && pip3 install face_recognition
+    

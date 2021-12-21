@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: camserver 
-        image: quay.io/mangelajo/cam-server:latest
+        image: docker.io/mangelajo/cam-server:latest #quay.io/mangelajo/cam-server:latest
         imagePullPolicy: Always
         ports:
          - containerPort: 5000
