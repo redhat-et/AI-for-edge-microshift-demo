@@ -5,7 +5,7 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
 RUN pip3 install flask
 WORKDIR /app
 
-COPY server.py /app
+COPY *.py /app
 RUN mkdir /app/faces
 COPY faces /app/faces
 ENV FLASK_APP=server
