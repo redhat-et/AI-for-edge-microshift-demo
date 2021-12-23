@@ -10,6 +10,8 @@ WebServer server(80);
 IPAddress microShiftAddress;
 
 static auto hiRes = esp32cam::Resolution::find(640, 480);
+unsigned long lastReconnectMillis;
+bool microShiftResolved = false;
 
 void
 handleJpgHi()
@@ -148,12 +150,10 @@ setup()
     delay(500);
   }
  
-  Serial.println("lights on!");
- 
+  lastReconnectMillis = millis(); 
 
-  Serial.print("http://");
-  Serial.println(WiFi.localIP());
-  Serial.println("  /cam-hi.jpg");
+  Serial.print("http://"); Serial.println(WiFi.localIP()); Serial.println("  /cam-hi.jpg");
+  Serial.print("http://"); Serial.println(WiFi.localIP()); Serial.println("  /stream");
 
   server.on("/cam-hi.jpg", handleJpgHi);
   server.on("/stream", handleMjpeg);
@@ -161,24 +161,49 @@ setup()
   server.begin();
 }
 
-bool microShiftResolved = false;
 
 #define HOSTNAME "microshift-cam-reg"
 #define HOSTNAME_FULL HOSTNAME ".local"
 
+void reconnectWiFiOnDisconnect() {
+  unsigned long currentMillis = millis();
+  // if WiFi is down, try reconnecting
+  if ((WiFi.status() != WL_CONNECTED) && (currentMillis - lastReconnectMillis >= 20000)) {
+    Serial.println("Reconnecting to WiFi...");
+    WiFi.disconnect();
+    WiFi.reconnect();
+    lastReconnectMillis = currentMillis;
+  }
+}
+
+
+unsigned long lastRegistrationMillis = 0;
+
+#define RE_REGISTRATION_MS 15000
+
 void
 loop()
 {
+  reconnectWiFiOnDisconnect();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    return;
+  }
+
   server.handleClient();
 
-  if (!microShiftAddress) {
+  if ((!microShiftAddress) || (!anyoneStreaming && (millis()-lastRegistrationMillis)>RE_REGISTRATION_MS)) {
   	microShiftAddress = MDNS.queryHost(HOSTNAME);
         if (microShiftAddress) {
- 	    Serial.print("microshift address resolved to: ");
+ 	    Serial.print("microshift " HOSTNAME_FULL " resolved to: ");
             Serial.println(microShiftAddress.toString());
+            Serial.println("Registering to cam server");
   	    if (!registerInCamServer()) {
 		microShiftAddress = IPAddress((uint32_t)0);
-            }        
+            } else {
+		lastRegistrationMillis = millis();
+            }
              
         } else {
             Serial.println("Could not resolve microshift address");
@@ -209,8 +234,11 @@ bool registerInCamServer() {
   client.println("Host: " HOSTNAME_FULL);
   client.println("Connection: close");
   client.println();
-
-  Serial.println("disconnected");
+  uint8_t buf[1024];
+  delay(1000);
+  int l = client.read(buf, 1023);
+  buf[l] = '\0';
+  Serial.println((char*)buf);
   client.stop();
   return true;
 }
