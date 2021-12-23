@@ -4,11 +4,11 @@ import numpy as np
 
 
 # TODO, traverse directories and generate automatically
-ricky1_image = face_recognition.load_image_file("faces/Ricardo Noriega/ricky1.jpg")
-ricky1_face_encoding = face_recognition.face_encodings(ricky1_image)[0]
+ricky1_face_encoding = face_recognition.face_encodings(
+    face_recognition.load_image_file("faces/Ricardo Noriega/ricky1.jpg"))[0]
 
-ajo1_image = face_recognition.load_image_file("faces/Miguel Angel Ajo/ajo1.jpg")
-ajo1_face_encoding = face_recognition.face_encodings(ajo1_image)[0]
+ajo1_face_encoding = face_recognition.face_encodings(
+    face_recognition.load_image_file("faces/Miguel Angel Ajo/ajo1.jpg"))[0]
 
 known_face_encodings = [
         ricky1_face_encoding,
