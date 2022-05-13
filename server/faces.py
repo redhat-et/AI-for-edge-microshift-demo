@@ -25,7 +25,7 @@ RATIO = 0.25
 
 def find_and_mark_faces(frame, logger, cam_ip):
     small_frame = cv2.resize(frame, (0, 0), fx=RATIO, fy=RATIO)
-    face_locations = face_recognition.face_locations(small_frame, 1, "cnn")
+    face_locations = face_recognition.face_locations(small_frame, 1, "hog")
     names = []
     face_encodings = face_recognition.face_encodings(small_frame, face_locations)
     for face_encoding in face_encodings:
@@ -35,7 +35,7 @@ def find_and_mark_faces(frame, logger, cam_ip):
         best_match_index = np.argmin(face_distances)
         if matches[best_match_index]:
             name = known_face_names[best_match_index]
-            names.append(name)
+        names.append(name)
 
         logger.info("[cam %s] face_locations = %s, names = %s", cam_ip, face_locations, names)
 
