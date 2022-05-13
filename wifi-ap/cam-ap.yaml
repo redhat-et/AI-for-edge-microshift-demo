@@ -17,7 +17,7 @@ spec:
       hostNetwork: true
       containers:
       - name: camwifi-ap
-        image: quay.io/mangelajo/microshift-ap-cams
+        image: quay.io/mangelajo/microshift-ap-cams:latest-rpi4
         imagePullPolicy: Always
         securityContext:
           privileged: true # otherwise hostapd can't change channels for some reason
