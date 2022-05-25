@@ -1,4 +1,4 @@
-# AI-for-edge-microshift-demo
+# AI at the Edge with MicroShift
 This repository contains the code developed for the talk "AI at the Edge with MicroShift" developed by Miguel Angel Ajo and Ricardo Noriega.
 
 You can find the video of our presentation [here](https://www.youtube.com/watch?v=kR9eSxM9qgg).
