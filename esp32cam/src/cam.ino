@@ -96,11 +96,19 @@ setup()
   sprintf(token, "%08x", esp_random());
 
   char *cam_id = getCamID();
-   
+
+  WiFi.persistent(false);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println("Connecting to WiFi..");
+  }
+
   if(!MDNS.begin(cam_id)) {
      Serial.println("Error starting mDNS");
      return;
-  }
+  } 
 
   Serial.print("Started mDNS server as ");
   Serial.println(cam_id);
@@ -143,12 +151,6 @@ setup()
 
   }
 
-  WiFi.persistent(false);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
  
   lastReconnectMillis = millis(); 
 
