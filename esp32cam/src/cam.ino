@@ -5,7 +5,6 @@
 #include <wifi_pass.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
-#define CAMERA_MODEL_AI_THINKER
 
 WebServer server(80);
 IPAddress microShiftAddress;
