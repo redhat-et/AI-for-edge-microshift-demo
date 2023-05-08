@@ -85,7 +85,7 @@ char *getCamID() {
    sprintf(cam_id,"CAM_%08x", chipId);
    return cam_id;
 }
-   	
+
 void
 setup()
 {
@@ -96,11 +96,6 @@ setup()
   sprintf(token, "%08x", esp_random());
 
   char *cam_id = getCamID();
-   
-  if(!MDNS.begin(cam_id)) {
-     Serial.println("Error starting mDNS");
-     return;
-  }
 
   Serial.print("Started mDNS server as ");
   Serial.println(cam_id);
@@ -116,7 +111,7 @@ setup()
 
     bool ok = Camera.begin(cfg);
     Serial.println(ok ? "CAMERA OK" : "CAMERA FAIL");
- 
+
   sensor_t * s = esp_camera_sensor_get();
   s->set_brightness(s, 0);     // -2 to 2
   s->set_contrast(s, 0);       // -2 to 2
@@ -149,8 +144,13 @@ setup()
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
- 
-  lastReconnectMillis = millis(); 
+
+  if(!MDNS.begin(cam_id)) {
+     Serial.println("Error starting mDNS");
+     return;
+  }
+
+  lastReconnectMillis = millis();
 
   Serial.print("http://"); Serial.println(WiFi.localIP()); Serial.println("  /cam-hi.jpg");
   Serial.print("http://"); Serial.println(WiFi.localIP()); Serial.println("  /stream");
@@ -204,12 +204,12 @@ loop()
             } else {
 		lastRegistrationMillis = millis();
             }
-             
+
         } else {
             Serial.println("Could not resolve microshift address");
             delay(1000);
         }
-  }	
+  }
 }
 
 bool registerInCamServer() {
@@ -242,4 +242,3 @@ bool registerInCamServer() {
   client.stop();
   return true;
 }
-
